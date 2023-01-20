@@ -38,6 +38,75 @@ function foyFunction(){
     }
 }
 </script>
+// inside function.php
+// Search Suggestion
+function data_fetch(){
+	$keyword = $_REQUEST['keyword'];
+	function title_filter( $where, &$wp_query )
+	{
+		global $wpdb;
+		if ( $search_term = $wp_query->get( 'search_prod_title' ) ) {
+			$where .= ' AND ' . $wpdb->posts . '.post_title LIKE \'%' . esc_sql( $wpdb->esc_like( $search_term ) ) . '%\'';
+		}
+		return $where;
+	}
+	$args = array(
+		'post_status' => 'publish',
+		'post_type' => 'course',
+		'orderby'   => 'meta_value_num',
+		// 1. define a custom query variable here to pass your term through
+		'search_prod_title' => $keyword,
+		'meta_query' => array(
+			array(
+				// 'key' => 'average_rating',
+				'key' => 'vibe_students',
+			),
+			array(
+				'key' => 'vibe_product',
+				'value'   => array(''),
+				'compare' => 'NOT IN'
+			)
+		),
+		'order' => 'DESC',
+		'posts_per_page' => 10,
+	);
+	add_filter('posts_where', 'title_filter', 10, 2 );
+	$the_query = new WP_Query($args);
+	remove_filter( 'posts_where', 'title_filter', 10 );
+	
+    if( $the_query->have_posts() ){
+        while($the_query->have_posts() ): $the_query->the_post(); 
+		$meta = get_post_meta(get_the_ID());
+		// echo "<pre>";
+		// var_dump($meta);
+		// echo "</pre>";
+		$product_meta = get_post_meta(get_the_ID(), 'vibe_students', true);
+		echo "<pre>";
+		var_dump($product_meta);
+		echo "</pre>";
+		?>
+			
+			<div class="foy-course-list">
+				<?php
+					$default =  get_theme_file_uri('/assets/images/defaultCourse.png');
+					$image_url = get_the_post_thumbnail_url(get_the_ID(), 'thumbnail');
+					$img_url = $image_url ? $image_url : $default
+
+				?>
+				<img src="<?php echo $img_url;?>">
+				<a href="<?php echo esc_url( the_permalink() ); ?>"><?php the_title();?></a>
+			</div>
+			<hr>
+        <?php endwhile;
+		wp_reset_postdata();  
+	}else{
+		echo '<h3>No Results Found</h3>';
+	}
+    die();
+}
+add_action('wp_ajax_data_fetch', 'data_fetch');
+add_action('wp_ajax_nopriv_data_fetch', 'data_fetch');
+
 <style>
 .makingTheAlilikeSearchForm .searchform input#s {
     border: none;
